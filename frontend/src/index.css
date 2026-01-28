@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Small global tweaks that complement Tailwind */
+
+.error-text {
+  @apply mb-2 mt-1 text-sm text-red-400;
+}
+
+/* Slight transition so numeric value updates feel smooth */
+.value-update {
+  @apply transition-opacity duration-100 ease-out;
+}

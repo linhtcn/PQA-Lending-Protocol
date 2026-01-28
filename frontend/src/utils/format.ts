@@ -1,0 +1,44 @@
+import { formatUnits } from 'ethers';
+import { TOKEN_DECIMALS } from '../constants';
+
+export function formatTokenAmount(
+  amount: bigint,
+  decimals: number = TOKEN_DECIMALS,
+  displayDecimals: number = 4
+): string {
+  const formatted = formatUnits(amount, decimals);
+  const num = parseFloat(formatted);
+
+  if (num === 0) return '0';
+  if (num < 0.0001) return '< 0.0001';
+
+  return num.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: displayDecimals,
+  });
+}
+
+export function formatPercentage(rate: bigint): string {
+  return `${rate.toString()}%`;
+}
+
+export function formatHealthFactor(healthFactor: bigint): string {
+  // Max uint256 represents infinite health factor (no borrows)
+  const MAX_UINT256 = 2n ** 256n - 1n;
+
+  if (healthFactor === MAX_UINT256) {
+    return '\u221E'; // Infinity symbol
+  }
+
+  return `${healthFactor.toString()}%`;
+}
+
+export function formatAddress(address: string): string {
+  if (!address || address.length < 10) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+export function formatTxHash(hash: string): string {
+  if (!hash || hash.length < 10) return hash;
+  return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+}
