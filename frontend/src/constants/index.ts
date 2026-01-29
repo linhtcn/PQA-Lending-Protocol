@@ -1,4 +1,5 @@
 export const BLOCK_EXPLORER_TX_URL = "https://testnet.bscscan.com/tx";
+export const BLOCK_EXPLORER_ADDRESS_URL = "https://testnet.bscscan.com/address";
 
 export const NETWORK_CONFIG = {
   chainId: 97,

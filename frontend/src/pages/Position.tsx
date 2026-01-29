@@ -38,6 +38,8 @@ export function Position() {
         <TokenBalances
           usd8Balance={usd8Balance.balance}
           wethBalance={wethBalance.balance}
+          usd8ContractAddress={addresses.USD8 as `0x${string}`}
+          wethContractAddress={addresses.WETH as `0x${string}`}
           isLoading={usd8Balance.isLoading || wethBalance.isLoading}
         />
       </div>

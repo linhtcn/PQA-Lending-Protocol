@@ -29,6 +29,7 @@ export function ApprovalButton({
   return (
     <div className="mb-4">
       <button
+        type="button"
         onClick={onApprove}
         disabled={isApproving || isPending}
         className="inline-flex w-full items-center justify-center rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-50 shadow hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-slate-400"
