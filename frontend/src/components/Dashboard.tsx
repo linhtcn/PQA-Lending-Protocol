@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useWallet } from "../hooks/useWallet";
-import { useContracts, getContractAddresses } from "../hooks/useContracts";
+import { useContractAddresses } from "../hooks/useContracts";
 import { useTokenBalance } from "../hooks/useTokenBalance";
 import { useApproval } from "../hooks/useApproval";
 import { usePoolInfo } from "../hooks/usePoolInfo";
@@ -16,30 +16,19 @@ import { useToast } from "./ToastProvider";
 
 export function Dashboard() {
   const wallet = useWallet();
-  const contracts = useContracts(wallet.provider);
-  const addresses = getContractAddresses();
+  const addresses = useContractAddresses();
+  const usd8Addr = addresses.USD8 as `0x${string}`;
+  const lendingAddr = addresses.SimpleLending as `0x${string}`;
 
-  // Token balances
-  const usd8Balance = useTokenBalance(contracts.usd8, wallet.address, "USD8");
-  const wethBalance = useTokenBalance(contracts.weth, wallet.address, "WETH");
+  const usd8Balance = useTokenBalance(usd8Addr, wallet.address, "USD8");
+  const wethBalance = useTokenBalance(addresses.WETH as `0x${string}`, wallet.address, "WETH");
 
-  // USD8 approval for lending contract
-  const approval = useApproval(
-    contracts.usd8,
-    addresses.SimpleLending,
-    wallet.address,
-    wallet.provider,
-  );
+  const approval = useApproval(usd8Addr, lendingAddr, wallet.address);
 
-  // Pool and position data
-  const poolInfo = usePoolInfo(contracts.simpleLending);
-  const userPosition = useUserPosition(contracts.simpleLending, wallet.address);
+  const poolInfo = usePoolInfo(lendingAddr);
+  const userPosition = useUserPosition(lendingAddr, wallet.address);
 
-  // Lending actions
-  const lendingActions = useLendingActions(
-    contracts.simpleLending,
-    wallet.provider,
-  );
+  const lendingActions = useLendingActions(lendingAddr);
 
   const { showToast } = useToast();
 
@@ -71,36 +60,34 @@ export function Dashboard() {
   }, [lendingActions.transaction, showToast]);
 
   // Refetch data after successful transactions
-  const handleTransactionSuccess = async () => {
-    await Promise.all([
-      usd8Balance.refetch(),
-      poolInfo.refetch(),
-      userPosition.refetch(),
-    ]);
+  const handleTransactionSuccess = () => {
+    usd8Balance.refetch();
+    poolInfo.refetch();
+    userPosition.refetch();
   };
 
   // Wrap actions to refetch after success
   const wrappedSupply = async (amount: string) => {
     const success = await lendingActions.supply(amount);
-    if (success) await handleTransactionSuccess();
+    if (success) handleTransactionSuccess();
     return success;
   };
 
   const wrappedWithdraw = async (amount: string) => {
     const success = await lendingActions.withdraw(amount);
-    if (success) await handleTransactionSuccess();
+    if (success) handleTransactionSuccess();
     return success;
   };
 
   const wrappedBorrow = async (amount: string) => {
     const success = await lendingActions.borrow(amount);
-    if (success) await handleTransactionSuccess();
+    if (success) handleTransactionSuccess();
     return success;
   };
 
   const wrappedRepay = async (amount: string) => {
     const success = await lendingActions.repay(amount);
-    if (success) await handleTransactionSuccess();
+    if (success) handleTransactionSuccess();
     return success;
   };
 

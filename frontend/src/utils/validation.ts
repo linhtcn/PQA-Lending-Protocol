@@ -1,4 +1,4 @@
-import { parseUnits } from 'ethers';
+import { parseUnits } from 'viem';
 import { TOKEN_DECIMALS } from '../constants';
 
 export function isValidAmount(value: string): boolean {

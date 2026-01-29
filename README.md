@@ -5,7 +5,7 @@ A complete React/TypeScript frontend for a DeFi lending protocol with Hardhat sm
 ## Features
 
 - Wallet connection with MetaMask
-- Network switching to Hardhat local network
+- Network switching to Hardhat local network/EVM-compatible chains testnet
 - Token balances display (USD8 and WETH)
 - Token approval flow
 - Lending protocol dashboard:

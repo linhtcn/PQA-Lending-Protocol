@@ -1,10 +1,7 @@
-import { BrowserProvider, Contract } from 'ethers';
-
 export interface WalletState {
   isConnected: boolean;
   address: string | null;
   chainId: number | null;
-  provider: BrowserProvider | null;
   isConnecting: boolean;
   error: string | null;
 }
@@ -41,12 +38,6 @@ export interface TransactionState {
 }
 
 export type ApprovalState = 'unknown' | 'checking' | 'not_approved' | 'approving' | 'approved';
-
-export interface Contracts {
-  usd8: Contract | null;
-  weth: Contract | null;
-  simpleLending: Contract | null;
-}
 
 export interface DeploymentInfo {
   network: string;

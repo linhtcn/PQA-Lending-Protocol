@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
-import { Contract, BrowserProvider, parseUnits } from 'ethers';
-import { TransactionState } from '../types';
+import { useCallback, useMemo } from 'react';
+import { parseUnits } from 'viem';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import type { TransactionState } from '../types';
+import SimpleLendingABI from '../abis/SimpleLending.json';
 
 interface UseLendingActionsResult {
   transaction: TransactionState;
@@ -11,110 +13,72 @@ interface UseLendingActionsResult {
   resetTransaction: () => void;
 }
 
-export function useLendingActions(
-  lendingContract: Contract | null,
-  provider: BrowserProvider | null
-): UseLendingActionsResult {
-  const [transaction, setTransaction] = useState<TransactionState>({
-    status: 'idle',
-    hash: null,
-    error: null,
+function normalizeError(err: unknown): string {
+  const obj = err as { code?: number; message?: string; shortMessage?: string; reason?: string };
+  if (obj?.code === 4001) return 'Transaction rejected by user';
+  const msg = obj?.shortMessage ?? obj?.reason ?? obj?.message;
+  if (typeof msg !== 'string') return 'Transaction failed';
+  if (msg.includes('Insufficient balance')) return 'Insufficient balance';
+  if (msg.includes('Insufficient allowance') || msg.includes('allowance')) return 'Insufficient allowance. Please approve first.';
+  if (msg.includes('Exceeds borrowing limit')) return 'Amount exceeds your borrowing limit';
+  if (msg.includes('Insufficient liquidity')) return 'Insufficient liquidity in the pool';
+  if (msg.includes('unhealthy')) return 'Withdrawal would make your position unhealthy';
+  if (msg.includes('Insufficient supply')) return 'Insufficient supplied amount';
+  if (msg.includes('Amount exceeds borrow') || msg.includes('exceeds')) return 'Amount exceeds your borrowed amount';
+  return msg.slice(0, 100);
+}
+
+export function useLendingActions(lendingAddress: `0x${string}` | null): UseLendingActionsResult {
+  const {
+    writeContractAsync,
+    data: txHash,
+    isPending,
+    error: writeError,
+    reset: resetWrite,
+  } = useWriteContract();
+
+  const { isSuccess: receiptSuccess, isError: receiptError } = useWaitForTransactionReceipt({
+    hash: txHash,
   });
 
-  const resetTransaction = useCallback(() => {
-    setTransaction({ status: 'idle', hash: null, error: null });
-  }, []);
+  const transaction: TransactionState = useMemo(() => {
+    if (writeError) {
+      return { status: 'failed', hash: null, error: normalizeError(writeError) };
+    }
+    if (isPending && !txHash) return { status: 'pending', hash: null, error: null };
+    if (txHash && !receiptSuccess && !receiptError) return { status: 'confirming', hash: txHash, error: null };
+    if (receiptSuccess && txHash) return { status: 'confirmed', hash: txHash, error: null };
+    if (receiptError) return { status: 'failed', hash: txHash ?? null, error: 'Transaction failed' };
+    return { status: 'idle', hash: null, error: null };
+  }, [isPending, txHash, receiptSuccess, receiptError, writeError]);
 
-  const executeTransaction = useCallback(
-    async (
-      method: string,
-      amount: string
-    ): Promise<boolean> => {
-      if (!lendingContract || !provider) {
-        setTransaction({
-          status: 'failed',
-          hash: null,
-          error: 'Contracts not initialized',
-        });
-        return false;
-      }
-
-      setTransaction({ status: 'pending', hash: null, error: null });
-
+  const execute = useCallback(
+    async (functionName: 'supply' | 'withdraw' | 'borrow' | 'repay', amount: string): Promise<boolean> => {
+      if (!lendingAddress) return false;
       try {
-        const signer = await provider.getSigner();
-        const contractWithSigner = lendingContract.connect(signer) as Contract;
-        const parsedAmount = parseUnits(amount, 18);
-
-        const tx = await contractWithSigner[method](parsedAmount);
-        setTransaction({ status: 'confirming', hash: tx.hash, error: null });
-
-        await tx.wait();
-        setTransaction({ status: 'confirmed', hash: tx.hash, error: null });
+        const parsed = parseUnits(amount, 18);
+        await writeContractAsync({
+          address: lendingAddress,
+          abi: SimpleLendingABI as readonly unknown[],
+          functionName,
+          args: [parsed],
+        });
         return true;
-      } catch (err: unknown) {
-        const error = err as { code?: number; reason?: string; message?: string };
-        let message = 'Transaction failed';
-
-        if (error.code === 4001) {
-          message = 'Transaction rejected by user';
-        } else if (error.reason) {
-          // Contract revert reason
-          message = error.reason;
-        } else if (error.message) {
-          // Parse common error messages
-          if (error.message.includes('Insufficient balance')) {
-            message = 'Insufficient balance';
-          } else if (error.message.includes('Insufficient allowance')) {
-            message = 'Insufficient allowance. Please approve first.';
-          } else if (error.message.includes('Exceeds borrowing limit')) {
-            message = 'Amount exceeds your borrowing limit';
-          } else if (error.message.includes('Insufficient liquidity')) {
-            message = 'Insufficient liquidity in the pool';
-          } else if (error.message.includes('unhealthy')) {
-            message = 'Withdrawal would make your position unhealthy';
-          } else if (error.message.includes('Insufficient supply')) {
-            message = 'Insufficient supplied amount';
-          } else if (error.message.includes('Amount exceeds borrow')) {
-            message = 'Amount exceeds your borrowed amount';
-          } else {
-            message = error.message.slice(0, 100);
-          }
-        }
-
-        setTransaction({ status: 'failed', hash: null, error: message });
+      } catch {
         return false;
       }
     },
-    [lendingContract, provider]
+    [lendingAddress, writeContractAsync]
   );
 
-  const supply = useCallback(
-    (amount: string) => executeTransaction('supply', amount),
-    [executeTransaction]
-  );
-
-  const withdraw = useCallback(
-    (amount: string) => executeTransaction('withdraw', amount),
-    [executeTransaction]
-  );
-
-  const borrow = useCallback(
-    (amount: string) => executeTransaction('borrow', amount),
-    [executeTransaction]
-  );
-
-  const repay = useCallback(
-    (amount: string) => executeTransaction('repay', amount),
-    [executeTransaction]
-  );
+  const resetTransaction = useCallback(() => resetWrite(), [resetWrite]);
 
   return {
     transaction,
-    supply,
-    withdraw,
-    borrow,
-    repay,
+    supply: (amount: string) => execute('supply', amount),
+    withdraw: (amount: string) => execute('withdraw', amount),
+    borrow: (amount: string) => execute('borrow', amount),
+    repay: (amount: string) => execute('repay', amount),
     resetTransaction,
   };
 }

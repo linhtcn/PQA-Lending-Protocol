@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Contract } from 'ethers';
-import { UserPosition } from '../types';
+import { useMemo } from 'react';
+import { useReadContracts, useWatchContractEvent } from 'wagmi';
+import type { UserPosition } from '../types';
+import SimpleLendingABI from '../abis/SimpleLending.json';
 
 interface UseUserPositionResult {
   position: UserPosition | null;
   isLoading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: () => void;
 }
 
 const defaultPosition: UserPosition = {
@@ -19,84 +20,82 @@ const defaultPosition: UserPosition = {
 };
 
 export function useUserPosition(
-  lendingContract: Contract | null,
+  lendingAddress: `0x${string}` | null,
   userAddress: string | null
 ): UseUserPositionResult {
-  const [position, setPosition] = useState<UserPosition | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedOnce = useRef(false);
+  const userArg = userAddress ? (userAddress as `0x${string}`) : undefined;
 
-  const fetchPosition = useCallback(async () => {
-    if (!lendingContract || !userAddress) {
-      hasLoadedOnce.current = false;
-      setPosition(null);
-      return;
-    }
+  const { data, isLoading, error, refetch } = useReadContracts({
+    contracts: [
+      {
+        address: lendingAddress ?? undefined,
+        abi: SimpleLendingABI as readonly unknown[],
+        functionName: 'getUserPosition',
+        args: userArg ? [userArg] : undefined,
+      },
+      {
+        address: lendingAddress ?? undefined,
+        abi: SimpleLendingABI as readonly unknown[],
+        functionName: 'calculateMaxWithdraw',
+        args: userArg ? [userArg] : undefined,
+      },
+      {
+        address: lendingAddress ?? undefined,
+        abi: SimpleLendingABI as readonly unknown[],
+        functionName: 'calculateMaxBorrow',
+        args: userArg ? [userArg] : undefined,
+      },
+    ],
+  });
 
-    // Only show loading on initial load; refetches keep previous data visible (no flicker)
-    if (!hasLoadedOnce.current) setIsLoading(true);
-    setError(null);
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Supplied',
+    args: userAddress ? [userAddress as `0x${string}`] : undefined,
+    onLogs: () => refetch(),
+  });
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Withdrawn',
+    args: userAddress ? [userAddress as `0x${string}`] : undefined,
+    onLogs: () => refetch(),
+  });
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Borrowed',
+    args: userAddress ? [userAddress as `0x${string}`] : undefined,
+    onLogs: () => refetch(),
+  });
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Repaid',
+    args: userAddress ? [userAddress as `0x${string}`] : undefined,
+    onLogs: () => refetch(),
+  });
 
-    try {
-      const positionResult = await lendingContract.getUserPosition(userAddress);
-      const maxWithdraw = await lendingContract.calculateMaxWithdraw(userAddress);
-      const maxBorrow = await lendingContract.calculateMaxBorrow(userAddress);
-
-      hasLoadedOnce.current = true;
-      setPosition({
-        supplied: positionResult[0],
-        borrowed: positionResult[1],
-        collateralValue: positionResult[2],
-        healthFactor: positionResult[3],
-        maxWithdraw,
-        maxBorrow,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch user position';
-      setError(message);
-      setPosition(defaultPosition);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [lendingContract, userAddress]);
-
-  // Fetch on mount and when dependencies change
-  useEffect(() => {
-    fetchPosition();
-  }, [fetchPosition]);
-
-  // Listen for user-specific events
-  useEffect(() => {
-    if (!lendingContract || !userAddress) return;
-
-    const handleUpdate = () => {
-      fetchPosition();
+  const position = useMemo<UserPosition | null>(() => {
+    const pos = data?.[0]?.result;
+    const maxWithdraw = data?.[1]?.result;
+    const maxBorrow = data?.[2]?.result;
+    if (!pos || !Array.isArray(pos)) return null;
+    return {
+      supplied: pos[0] as bigint,
+      borrowed: pos[1] as bigint,
+      collateralValue: pos[2] as bigint,
+      healthFactor: pos[3] as bigint,
+      maxWithdraw: (maxWithdraw as bigint) ?? 0n,
+      maxBorrow: (maxBorrow as bigint) ?? 0n,
     };
-
-    // Create filters for user-specific events
-    const suppliedFilter = lendingContract.filters.Supplied(userAddress);
-    const withdrawnFilter = lendingContract.filters.Withdrawn(userAddress);
-    const borrowedFilter = lendingContract.filters.Borrowed(userAddress);
-    const repaidFilter = lendingContract.filters.Repaid(userAddress);
-
-    lendingContract.on(suppliedFilter, handleUpdate);
-    lendingContract.on(withdrawnFilter, handleUpdate);
-    lendingContract.on(borrowedFilter, handleUpdate);
-    lendingContract.on(repaidFilter, handleUpdate);
-
-    return () => {
-      lendingContract.off(suppliedFilter, handleUpdate);
-      lendingContract.off(withdrawnFilter, handleUpdate);
-      lendingContract.off(borrowedFilter, handleUpdate);
-      lendingContract.off(repaidFilter, handleUpdate);
-    };
-  }, [lendingContract, userAddress, fetchPosition]);
+  }, [data]);
 
   return {
-    position,
+    position: position ?? (error ? defaultPosition : null),
     isLoading,
-    error,
-    refetch: fetchPosition,
+    error: error?.message ?? null,
+    refetch,
   };
 }

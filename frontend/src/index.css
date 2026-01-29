@@ -1,6 +1,22 @@
 @import "tailwindcss";
 
-/* Small global tweaks that complement Tailwind */
+/* Base: dark slate with subtle gradient */
+:root {
+  --bg-base: 2 6 23; /* slate-950 */
+  --accent-from: 99 102 241; /* indigo-500 */
+  --accent-to: 139 92 246; /* violet-500 */
+}
+
+body {
+  @apply antialiased;
+  background: linear-gradient(160deg, rgb(var(--bg-base) / 1) 0%, rgb(15 23 42 / 0.98) 50%, rgb(30 41 59 / 0.95) 100%);
+  min-height: 100vh;
+}
+
+/* Card glass effect */
+.glass-card {
+  @apply rounded-2xl border border-slate-800/80 bg-slate-900/60 shadow-xl backdrop-blur;
+}
 
 .error-text {
   @apply mb-2 mt-1 text-sm text-red-400;
@@ -9,4 +25,29 @@
 /* Slight transition so numeric value updates feel smooth */
 .value-update {
   @apply transition-opacity duration-100 ease-out;
+}
+
+/* Scrollbar styling for sidebar */
+aside::-webkit-scrollbar {
+  width: 6px;
+}
+aside::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+aside::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-700;
+}
+aside::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-600;
+}
+
+/* Recharts tooltips: force white text (default content can override inline color) */
+.recharts-default-tooltip {
+  color: #f8fafc !important;
+}
+.recharts-default-tooltip .recharts-tooltip-label {
+  color: #f8fafc !important;
+}
+.recharts-default-tooltip .recharts-tooltip-item {
+  color: #e2e8f0 !important;
 }

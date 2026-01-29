@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { parseUnits } from 'ethers';
+import { parseUnits } from 'viem';
 import { TokenBalance, UserPosition, ApprovalState, TransactionState, PoolInfo } from '../types';
 import { isValidAmount } from '../utils/validation';
 import { formatTokenAmount } from '../utils/format';

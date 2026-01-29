@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Contract } from 'ethers';
-import { PoolInfo } from '../types';
+import { useMemo } from 'react';
+import { useReadContract, useWatchContractEvent } from 'wagmi';
+import type { PoolInfo } from '../types';
+import SimpleLendingABI from '../abis/SimpleLending.json';
 
 interface UsePoolInfoResult {
   poolInfo: PoolInfo | null;
   isLoading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: () => void;
 }
 
 const defaultPoolInfo: PoolInfo = {
@@ -17,75 +18,53 @@ const defaultPoolInfo: PoolInfo = {
   borrowRate: 0n,
 };
 
-export function usePoolInfo(
-  lendingContract: Contract | null
-): UsePoolInfoResult {
-  const [poolInfo, setPoolInfo] = useState<PoolInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedOnce = useRef(false);
+export function usePoolInfo(lendingAddress: `0x${string}` | null): UsePoolInfoResult {
+  const { data, isLoading, error, refetch } = useReadContract({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    functionName: 'getPoolInfo',
+  });
 
-  const fetchPoolInfo = useCallback(async () => {
-    if (!lendingContract) {
-      hasLoadedOnce.current = false;
-      setPoolInfo(null);
-      return;
-    }
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Supplied',
+    onLogs: () => refetch(),
+  });
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Withdrawn',
+    onLogs: () => refetch(),
+  });
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Borrowed',
+    onLogs: () => refetch(),
+  });
+  useWatchContractEvent({
+    address: lendingAddress ?? undefined,
+    abi: SimpleLendingABI as readonly unknown[],
+    eventName: 'Repaid',
+    onLogs: () => refetch(),
+  });
 
-    // Only show loading on initial load; refetches keep previous data visible (no flicker)
-    if (!hasLoadedOnce.current) setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await lendingContract.getPoolInfo();
-      hasLoadedOnce.current = true;
-      setPoolInfo({
-        totalSupply: result[0],
-        totalBorrow: result[1],
-        utilizationRate: result[2],
-        supplyRate: result[3],
-        borrowRate: result[4],
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch pool info';
-      setError(message);
-      setPoolInfo(defaultPoolInfo);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [lendingContract]);
-
-  // Fetch on mount
-  useEffect(() => {
-    fetchPoolInfo();
-  }, [fetchPoolInfo]);
-
-  // Listen for lending events
-  useEffect(() => {
-    if (!lendingContract) return;
-
-    const handleUpdate = () => {
-      fetchPoolInfo();
+  const poolInfo = useMemo<PoolInfo | null>(() => {
+    if (!data || !Array.isArray(data)) return null;
+    return {
+      totalSupply: data[0] as bigint,
+      totalBorrow: data[1] as bigint,
+      utilizationRate: data[2] as bigint,
+      supplyRate: data[3] as bigint,
+      borrowRate: data[4] as bigint,
     };
-
-    // Listen to all relevant events
-    lendingContract.on('Supplied', handleUpdate);
-    lendingContract.on('Withdrawn', handleUpdate);
-    lendingContract.on('Borrowed', handleUpdate);
-    lendingContract.on('Repaid', handleUpdate);
-
-    return () => {
-      lendingContract.off('Supplied', handleUpdate);
-      lendingContract.off('Withdrawn', handleUpdate);
-      lendingContract.off('Borrowed', handleUpdate);
-      lendingContract.off('Repaid', handleUpdate);
-    };
-  }, [lendingContract, fetchPoolInfo]);
+  }, [data]);
 
   return {
-    poolInfo,
+    poolInfo: poolInfo ?? (error ? defaultPoolInfo : null),
     isLoading,
-    error,
-    refetch: fetchPoolInfo,
+    error: error?.message ?? null,
+    refetch,
   };
 }

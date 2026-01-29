@@ -1,126 +1,101 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Contract, BrowserProvider } from 'ethers';
-import { ApprovalState, TransactionState } from '../types';
+import { useCallback, useMemo } from 'react';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useWatchContractEvent } from 'wagmi';
+import type { ApprovalState, TransactionState } from '../types';
 import { MAX_UINT256 } from '../constants';
+import TestTokenABI from '../abis/TestToken.json';
 
 interface UseApprovalResult {
   allowance: bigint;
   approvalState: ApprovalState;
   transaction: TransactionState;
   approve: () => Promise<boolean>;
-  refetch: () => Promise<void>;
+  refetch: () => void;
   isApproved: (amount: bigint) => boolean;
 }
 
 export function useApproval(
-  tokenContract: Contract | null,
+  tokenAddress: `0x${string}` | null,
   spenderAddress: string | null,
-  ownerAddress: string | null,
-  provider: BrowserProvider | null
+  ownerAddress: string | null
 ): UseApprovalResult {
-  const [allowance, setAllowance] = useState<bigint>(0n);
-  const [approvalState, setApprovalState] = useState<ApprovalState>('unknown');
-  const [transaction, setTransaction] = useState<TransactionState>({
-    status: 'idle',
-    hash: null,
-    error: null,
+  const { data: allowanceData, refetch, isLoading: allowanceLoading } = useReadContract({
+    address: tokenAddress ?? undefined,
+    abi: TestTokenABI as readonly unknown[],
+    functionName: 'allowance',
+    args:
+      ownerAddress && spenderAddress
+        ? [ownerAddress as `0x${string}`, spenderAddress as `0x${string}`]
+        : undefined,
   });
 
-  const fetchAllowance = useCallback(async () => {
-    if (!tokenContract || !spenderAddress || !ownerAddress) {
-      setAllowance(0n);
-      setApprovalState('unknown');
-      return;
-    }
+  const {
+    writeContractAsync,
+    data: txHash,
+    isPending: isApprovePending,
+    error: writeError,
+    reset: resetWrite,
+  } = useWriteContract();
 
-    setApprovalState('checking');
+  const { isSuccess: receiptSuccess, isError: receiptError } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
 
-    try {
-      const currentAllowance: bigint = await tokenContract.allowance(
-        ownerAddress,
-        spenderAddress
-      );
-      setAllowance(currentAllowance);
-      setApprovalState(currentAllowance > 0n ? 'approved' : 'not_approved');
-    } catch {
-      setApprovalState('unknown');
+  useWatchContractEvent({
+    address: tokenAddress ?? undefined,
+    abi: TestTokenABI as readonly unknown[],
+    eventName: 'Approval',
+    args: ownerAddress && spenderAddress ? [ownerAddress as `0x${string}`, spenderAddress as `0x${string}`] : undefined,
+    onLogs: () => refetch(),
+  });
+
+  const allowance = (allowanceData as bigint) ?? 0n;
+
+  const approvalState: ApprovalState = useMemo(() => {
+    if (allowanceLoading) return 'checking';
+    if (isApprovePending || (txHash && !receiptSuccess && !receiptError)) return 'approving';
+    return allowance > 0n ? 'approved' : 'not_approved';
+  }, [allowanceLoading, isApprovePending, txHash, receiptSuccess, receiptError, allowance]);
+
+  const transaction: TransactionState = useMemo(() => {
+    if (writeError) {
+      const msg =
+        (writeError as { message?: string }).message?.slice(0, 100) ?? 'Approval failed';
+      return { status: 'failed', hash: null, error: msg };
     }
-  }, [tokenContract, spenderAddress, ownerAddress]);
+    if (isApprovePending && !txHash) return { status: 'pending', hash: null, error: null };
+    if (txHash && !receiptSuccess && !receiptError) return { status: 'confirming', hash: txHash, error: null };
+    if (receiptSuccess && txHash) return { status: 'confirmed', hash: txHash, error: null };
+    if (receiptError) return { status: 'failed', hash: txHash ?? null, error: 'Transaction failed' };
+    return { status: 'idle', hash: null, error: null };
+  }, [isApprovePending, txHash, receiptSuccess, receiptError, writeError]);
 
   const approve = useCallback(async (): Promise<boolean> => {
-    if (!tokenContract || !spenderAddress || !provider) {
-      return false;
-    }
-
-    setApprovalState('approving');
-    setTransaction({ status: 'pending', hash: null, error: null });
-
+    if (!tokenAddress || !spenderAddress) return false;
+    resetWrite();
     try {
-      const signer = await provider.getSigner();
-      const tokenWithSigner = tokenContract.connect(signer) as Contract;
-
-      const tx = await tokenWithSigner.approve(spenderAddress, MAX_UINT256);
-      setTransaction({ status: 'confirming', hash: tx.hash, error: null });
-
-      await tx.wait();
-      setTransaction({ status: 'confirmed', hash: tx.hash, error: null });
-      setAllowance(MAX_UINT256);
-      setApprovalState('approved');
+      await writeContractAsync({
+        address: tokenAddress,
+        abi: TestTokenABI as readonly unknown[],
+        functionName: 'approve',
+        args: [spenderAddress as `0x${string}`, MAX_UINT256],
+      });
       return true;
     } catch (err: unknown) {
-      const error = err as { code?: number; reason?: string; message?: string };
-      let message = 'Approval failed';
-
-      if (error.code === 4001) {
-        message = 'Transaction rejected by user';
-      } else if (error.reason) {
-        message = error.reason;
-      } else if (error.message) {
-        // Truncate very long error messages so we don't show raw objects/JSON
-        message = error.message.slice(0, 100);
-      }
-
-      setTransaction({ status: 'failed', hash: null, error: message });
-      setApprovalState('not_approved');
       return false;
     }
-  }, [tokenContract, spenderAddress, provider]);
+  }, [tokenAddress, spenderAddress, writeContractAsync, resetWrite]);
 
   const isApproved = useCallback(
-    (amount: bigint): boolean => {
-      return allowance >= amount;
-    },
+    (amount: bigint): boolean => allowance >= amount,
     [allowance]
   );
-
-  // Fetch allowance on mount
-  useEffect(() => {
-    fetchAllowance();
-  }, [fetchAllowance]);
-
-  // Listen for Approval events
-  useEffect(() => {
-    if (!tokenContract || !ownerAddress || !spenderAddress) return;
-
-    const filter = tokenContract.filters.Approval(ownerAddress, spenderAddress);
-
-    const handleApproval = () => {
-      fetchAllowance();
-    };
-
-    tokenContract.on(filter, handleApproval);
-
-    return () => {
-      tokenContract.off(filter, handleApproval);
-    };
-  }, [tokenContract, ownerAddress, spenderAddress, fetchAllowance]);
 
   return {
     allowance,
     approvalState,
     transaction,
     approve,
-    refetch: fetchAllowance,
+    refetch,
     isApproved,
   };
 }

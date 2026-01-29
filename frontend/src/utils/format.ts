@@ -1,5 +1,12 @@
-import { formatUnits } from 'ethers';
+import { formatUnits } from 'viem';
 import { TOKEN_DECIMALS } from '../constants';
+
+/** Convert bigint to number for chart Y-axis (human scale, preserves proportions). */
+export function bigintToChartNumber(amount: bigint, decimals: number = TOKEN_DECIMALS): number {
+  const s = formatUnits(amount, decimals);
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
+}
 
 export function formatTokenAmount(
   amount: bigint,
