@@ -18,8 +18,8 @@ export function PoolInfoSummary({ poolInfo, isLoading }: PoolInfoSummaryProps) {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
           Pool Information
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {[1, 2, 3, 4, 5].map((i) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
               className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 animate-pulse"
@@ -38,7 +38,7 @@ export function PoolInfoSummary({ poolInfo, isLoading }: PoolInfoSummaryProps) {
       <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">
         Pool Information
       </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <div className="rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-5 shadow-xl backdrop-blur">
           <p className="mb-1 flex items-center text-xs font-medium uppercase tracking-wider text-slate-500">
             Total Supply
@@ -68,8 +68,17 @@ export function PoolInfoSummary({ poolInfo, isLoading }: PoolInfoSummaryProps) {
         </div>
         <div className="rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-5 shadow-xl backdrop-blur">
           <p className="mb-1 flex items-center text-xs font-medium uppercase tracking-wider text-slate-500">
-            Supply APY
-            <InfoTooltip content="Annual percentage yield earned by suppliers on their deposited USD8." label="Supply APY explanation" />
+            Utilization Rate
+            <InfoTooltip content="Share of supplied liquidity that is currently borrowed (total borrowed / total supply). Higher utilization typically means higher supply and borrow rates." label="Utilization Rate explanation" />
+          </p>
+          <p className="value-update font-mono text-xl font-bold text-sky-400">
+            {poolInfo ? formatPercentage(poolInfo.utilizationRate) : '—'}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-5 shadow-xl backdrop-blur">
+          <p className="mb-1 flex items-center text-xs font-medium uppercase tracking-wider text-slate-500">
+            Supply rate
+            <InfoTooltip content="Supply rate" label="Supply rate" />
           </p>
           <p className="value-update font-mono text-xl font-bold text-emerald-400">
             {poolInfo ? formatPercentage(poolInfo.supplyRate) : '—'}
@@ -77,8 +86,8 @@ export function PoolInfoSummary({ poolInfo, isLoading }: PoolInfoSummaryProps) {
         </div>
         <div className="rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900/80 to-slate-900/40 p-5 shadow-xl backdrop-blur">
           <p className="mb-1 flex items-center text-xs font-medium uppercase tracking-wider text-slate-500">
-            Borrow APR
-            <InfoTooltip content="Annual percentage rate paid by borrowers on their borrowed USD8." label="Borrow APR explanation" />
+            Borrow rate
+            <InfoTooltip content="Borrow rate" label="Borrow rate" />
           </p>
           <p className="value-update font-mono text-xl font-bold text-amber-400">
             {poolInfo ? formatPercentage(poolInfo.borrowRate) : '—'}

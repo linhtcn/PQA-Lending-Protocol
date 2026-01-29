@@ -25,8 +25,8 @@ export function PoolRatesChart({ poolInfo, isLoading }: PoolRatesChartProps) {
   const utilizationNum = Number(poolInfo.utilizationRate.toString());
 
   const data = [
-    { label: 'Supply APY', value: supplyRateNum, color: '#10b981' },
-    { label: 'Borrow APR', value: borrowRateNum, color: '#f59e0b' },
+    { label: 'Supply rate', value: supplyRateNum, color: '#10b981' },
+    { label: 'Borrow rate', value: borrowRateNum, color: '#f59e0b' },
     { label: 'Utilization', value: utilizationNum, color: '#6366f1' },
   ];
 
@@ -64,8 +64,8 @@ export function PoolRatesChart({ poolInfo, isLoading }: PoolRatesChartProps) {
         </ResponsiveContainer>
       </div>
       <div className="mt-3 flex flex-wrap gap-4 text-sm">
-        <span className="text-emerald-400">Supply APY: {formatPercentage(poolInfo.supplyRate)}</span>
-        <span className="text-amber-400">Borrow APR: {formatPercentage(poolInfo.borrowRate)}</span>
+        <span className="text-emerald-400">Supply rate: {formatPercentage(poolInfo.supplyRate)}</span>
+        <span className="text-amber-400">Borrow rate: {formatPercentage(poolInfo.borrowRate)}</span>
       </div>
     </div>
   );

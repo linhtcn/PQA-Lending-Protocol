@@ -60,6 +60,7 @@ export function usePoolInfo(lendingAddress: `0x${string}` | null): UsePoolInfoRe
       borrowRate: data[4] as bigint,
     };
   }, [data]);
+  console.log("🚀 ~ usePoolInfo ~ poolInfo:", poolInfo)
 
   return {
     poolInfo: poolInfo ?? (error ? defaultPoolInfo : null),

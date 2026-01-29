@@ -25,15 +25,13 @@ export function formatTokenAmount(
   });
 }
 
+/** Format a rate (0–100 scale) with up to 2 decimal places, e.g. supply/borrow/utilization. */
 export function formatPercentage(rate: bigint): string {
   return `${rate.toString()}%`;
 }
 
-export function formatHealthFactor(healthFactor: bigint): string {
-  // Max uint256 represents infinite health factor (no borrows)
-  const MAX_UINT256 = 2n ** 256n - 1n;
-
-  if (healthFactor === MAX_UINT256) {
+export function formatHealthFactor(healthFactor: bigint, isInfinite: boolean ): string {
+  if (isInfinite) {
     return '\u221E'; // Infinity symbol
   }
 

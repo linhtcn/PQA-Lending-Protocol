@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
 
-type ToastType = 'info' | 'success' | 'error';
+type ToastType = 'info' | 'success' | 'error' | 'pending';
 
 interface Toast {
   id: number;
@@ -10,6 +10,7 @@ interface Toast {
 
 interface ToastContextValue {
   showToast: (message: string, type?: ToastType) => void;
+  dismissPendingToasts: () => void;
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
@@ -21,18 +22,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
 
-    // Auto-dismiss after 5 seconds
+    // Pending toasts stay longer so they're visible while tx confirms; others 3s
+    const dismissMs = type === 'pending' ? 8000 : 3000;
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 3000);
+    }, dismissMs);
   }, []);
 
   const dismissToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
+  const dismissPendingToasts = useCallback(() => {
+    setToasts((prev) => prev.filter((toast) => toast.type !== 'pending'));
+  }, []);
+
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ showToast, dismissPendingToasts }}>
       {children}
       <div className="fixed bottom-6 right-6 z-50 flex max-w-sm flex-col gap-3">
         {toasts.map((toast) => (
@@ -43,6 +49,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 ? 'border border-emerald-500/50 bg-emerald-900/70 text-emerald-100'
                 : toast.type === 'error'
                 ? 'border border-red-500/50 bg-red-900/70 text-red-100'
+                : toast.type === 'pending'
+                ? 'border border-amber-500/50 bg-amber-900/60 text-amber-100'
                 : 'border border-slate-500/50 bg-slate-900/80 text-slate-100'
             }`}
           >

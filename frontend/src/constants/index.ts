@@ -1,3 +1,5 @@
+export const BLOCK_EXPLORER_TX_URL = "https://testnet.bscscan.com/tx";
+
 export const NETWORK_CONFIG = {
   chainId: 97,
   chainIdHex: "0x61", // BSC Testnet chainId in hex

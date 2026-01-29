@@ -8,14 +8,14 @@ interface HealthFactorDisplayProps {
 
 export function HealthFactorDisplay({ healthFactor, borrowed }: HealthFactorDisplayProps) {
   const MAX_UINT256 = 2n ** 256n - 1n;
-  const isInfinite = healthFactor === MAX_UINT256;
   const hasBorrowed = borrowed > 0n;
+  const isInfinite = healthFactor === MAX_UINT256 || !hasBorrowed;
 
   let colorClass =
     'bg-linear-to-br from-emerald-500/60 via-emerald-500/30 to-emerald-300/40 text-emerald-50';
   let statusText = 'Safe';
 
-  if (!isInfinite && hasBorrowed) {
+  if (!isInfinite) {
     if (healthFactor < HEALTH_FACTOR_THRESHOLDS.DANGER) {
       colorClass =
         'bg-linear-to-br from-red-500/70 via-red-500/40 to-rose-500/40 text-red-100';
@@ -42,7 +42,7 @@ export function HealthFactorDisplay({ healthFactor, borrowed }: HealthFactorDisp
         Health Factor
       </span>
       <span className="mt-1 font-mono text-3xl font-bold">
-        {formatHealthFactor(healthFactor)}
+        {formatHealthFactor(healthFactor, isInfinite)}
       </span>
       <span className="mt-1 text-xs opacity-90">
         {isInfinite ? 'No Borrows' : statusText}

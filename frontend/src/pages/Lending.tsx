@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { useContractAddresses } from '../hooks/useContracts';
 import { useTokenBalance } from '../hooks/useTokenBalance';
@@ -22,25 +22,43 @@ export function Lending() {
   const poolInfo = usePoolInfo(lendingAddr);
   const userPosition = useUserPosition(lendingAddr, wallet.address);
   const lendingActions = useLendingActions(lendingAddr);
-  const { showToast } = useToast();
+  const { showToast, dismissPendingToasts } = useToast();
+  const prevApprovalStatus = useRef(approval.transaction.status);
+  const prevActionStatus = useRef(lendingActions.transaction.status);
 
   useEffect(() => {
     const { status, error } = approval.transaction;
+    const wasPending = prevApprovalStatus.current === 'pending' || prevApprovalStatus.current === 'confirming';
+    const isPending = status === 'pending' || status === 'confirming';
+    if (isPending && !wasPending) {
+      showToast('Approval pending...', 'pending');
+    }
     if (status === 'failed' && error) {
+      dismissPendingToasts();
       showToast(error, 'error');
     } else if (status === 'confirmed') {
+      dismissPendingToasts();
       showToast('Approval successful', 'success');
     }
-  }, [approval.transaction, showToast]);
+    prevApprovalStatus.current = status;
+  }, [approval.transaction, showToast, dismissPendingToasts]);
 
   useEffect(() => {
     const { status, error } = lendingActions.transaction;
+    const wasPending = prevActionStatus.current === 'pending' || prevActionStatus.current === 'confirming';
+    const isPending = status === 'pending' || status === 'confirming';
+    if (isPending && !wasPending) {
+      showToast('Transaction pending...', 'pending');
+    }
     if (status === 'failed' && error) {
+      dismissPendingToasts();
       showToast(error, 'error');
     } else if (status === 'confirmed') {
+      dismissPendingToasts();
       showToast('Transaction confirmed', 'success');
     }
-  }, [lendingActions.transaction, showToast]);
+    prevActionStatus.current = status;
+  }, [lendingActions.transaction, showToast, dismissPendingToasts]);
 
   const handleTransactionSuccess = () => {
     usd8Balance.refetch();
