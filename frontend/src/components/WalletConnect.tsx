@@ -13,7 +13,7 @@ export function WalletConnect({
   isConnected,
   address,
   isConnecting,
-  error,
+  // error,
   onConnect,
   onDisconnect,
 }: WalletConnectProps) {

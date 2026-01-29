@@ -3,7 +3,7 @@ import { parseUnits } from 'ethers';
 import { TokenBalance, UserPosition, ApprovalState, TransactionState, PoolInfo } from '../types';
 import { isValidAmount } from '../utils/validation';
 import { formatTokenAmount } from '../utils/format';
-import { TransactionStatus } from './TransactionStatus';
+// import { TransactionStatus } from './TransactionStatus';
 import { ApprovalButton } from './ApprovalButton';
 
 type ActionType = 'supply' | 'withdraw' | 'borrow' | 'repay';
