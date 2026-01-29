@@ -38,10 +38,10 @@ export function useLendingEvents(lendingAddress: `0x${string}` | null) {
       const rows: LendingEventRow[] = [];
       let no = 0;
       for (const log of events) {
-        const eventName = log.eventName as string;
+        const eventName = (log as any).eventName as string;
         if (!LENDING_EVENT_NAMES.includes(eventName as LendingEventType)) continue;
 
-        const args = log.args as { user?: string; amount?: bigint; timestamp?: bigint };
+        const args = (log as any).args as { user?: string; amount?: bigint; timestamp?: bigint };
         const timestamp = args?.timestamp != null ? Number(args.timestamp) * 1000 : Date.now();
 
         rows.push({
