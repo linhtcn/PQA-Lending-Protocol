@@ -5,10 +5,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "node": "hardhat node",
-    "start": "./scripts/start-local.sh",
     "deploy": "hardhat run scripts/deploy.js --network localhost",
-    "fund": "hardhat run scripts/fundAccount.js --network localhost",
-    "check-balance": "hardhat run scripts/checkBalance.js --network localhost",
+    "deploy:bsc": "hardhat run scripts/deploy-bsc-testnet.js --network bscTestnet",
     "test": "hardhat test"
   },
   "devDependencies": {

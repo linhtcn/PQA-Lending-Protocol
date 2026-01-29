@@ -1,7 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
-const { SEPOLIA_RPC_URL, SEPOLIA_PRIVATE_KEY } = process.env;
+const { ETHERSCAN_API_KEY, BSC_TESTNET_PRIVATE_KEY } = process.env;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -14,10 +14,13 @@ module.exports = {
       url: "http://127.0.0.1:8545",
       chainId: 31337,
     },
-    sepolia: {
-      url: SEPOLIA_RPC_URL || "",
-      accounts: SEPOLIA_PRIVATE_KEY ? [SEPOLIA_PRIVATE_KEY] : [],
-      chainId: 11155111,
+    bscTestnet: {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+      accounts: BSC_TESTNET_PRIVATE_KEY ? [BSC_TESTNET_PRIVATE_KEY] : [],
+      chainId: 97,
     },
+  },
+  etherscan: {
+    apiKey: ETHERSCAN_API_KEY,
   },
 };

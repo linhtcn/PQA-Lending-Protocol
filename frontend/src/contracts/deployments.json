@@ -1,10 +1,10 @@
 {
-  "network": "localhost",
-  "chainId": 31337,
+  "network": "bscTestnet",
+  "chainId": 97,
   "contracts": {
-    "USD8": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    "WETH": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-    "SimpleLending": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    "USD8": "0x535701e6f5893a9C633b651c3DCC8a06aF21f3f7",
+    "WETH": "0x166cE1F495b7aBD8d13e8898aCF0860d5AE03599",
+    "SimpleLending": "0x786bB05b14b972836f48E682c86070Da3E8639d7"
   },
-  "deployedAt": "2026-01-28T16:06:34.285Z"
+  "deployedAt": "2026-01-29T08:53:20.347Z"
 }
