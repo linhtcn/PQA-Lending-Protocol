@@ -78,9 +78,9 @@ npx hardhat node
 
 Keep this terminal running.
 
-### 4. Deploy Contracts
+### 4. Deploy Contracts (Local)
 
-In a new terminal, deploy the contracts:
+In a new terminal, deploy the contracts to the local Hardhat node:
 
 ```bash
 npm run deploy
@@ -92,6 +92,47 @@ This will:
 - Seed test accounts with 10,000 tokens each
 - Export ABIs to `frontend/src/abis/`
 - Export contract addresses to `frontend/src/contracts/deployments.json`
+
+---
+
+### Deploy and verify on BSC Testnet
+
+To deploy the same contracts to **BSC Testnet** (chainId 97) and verify them on BSCScan:
+
+**Prerequisites**
+
+1. **Environment variables** (create a `.env` in the project root, do not commit it):
+   - `BSC_TESTNET_PRIVATE_KEY` — Private key of the wallet that will deploy (must have testnet BNB).
+   - `ETHERSCAN_API_KEY` — Your [BSCScan API key](https://bscscan.com/apis) (used by Hardhat for verification).
+
+2. **Testnet BNB** — Get BNB for the deployer address from the [BSC Testnet Faucet](https://testnet.bnbchain.org/faucet-smart).
+
+**Deploy to BSC Testnet**
+
+From the project root:
+
+```bash
+npm run deploy:bsc
+```
+
+This will:
+- Deploy USD8, WETH, and SimpleLending to BSC Testnet.
+- Export ABIs and addresses to `frontend/src/abis/` and `frontend/src/contracts/deployments.json`.
+- Fail if the deployer has no BNB or if the network is not BSC Testnet (chainId 97).
+
+**Verify contracts on BSCScan**
+
+After deploying, verify the contract source on BSCScan so the "Read Contract" / "Write Contract" UIs work:
+
+1. If you deployed with the script above, it prints the new contract addresses. Update the addresses at the top of `scripts/verify-bsc-contracts.js` to match your deployment (or leave them as-is if you are re-verifying the same contracts).
+
+2. Run the verification script:
+
+```bash
+npm run verify:bsc
+```
+
+3. Check [BSCScan Testnet](https://testnet.bscscan.com) — each contract page should show a "Contract" tab with verified source.
 
 ### 5. Install Frontend Dependencies
 
@@ -157,7 +198,7 @@ Hardhat default accounts (each has 10,000 ETH and 10,000 USD8/WETH after deploym
 | #1 | `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` |
 | #2 | `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a` |
 
-## Contract Addresses
+## Local Hardhat Contract Addresses
 
 After deployment, contract addresses are saved to `frontend/src/contracts/deployments.json`.
 
@@ -165,6 +206,13 @@ Typical addresses (may vary):
 - USD8: 0x5FbDB2315678afecb367f032d93F642f64180aa3
 - WETH: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 - SimpleLending: 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+
+## BSC Testnet Contract Addresses
+
+Addresses (may vary):
+- USD8: 0x535701e6f5893a9C633b651c3DCC8a06aF21f3f7
+- WETH: 0x166cE1F495b7aBD8d13e8898aCF0860d5AE03599
+- SimpleLending: 0x786bB05b14b972836f48E682c86070Da3E8639d7
 
 ## Technical Decisions
 
