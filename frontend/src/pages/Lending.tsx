@@ -56,9 +56,13 @@ export function Lending() {
     } else if (status === 'confirmed') {
       dismissPendingToasts();
       showToast('Transaction confirmed', 'success');
+      usd8Balance.refetch();
+      poolInfo.refetch();
+      userPosition.refetch();
+      approval.refetch();
     }
     prevActionStatus.current = status;
-  }, [lendingActions.transaction, showToast, dismissPendingToasts]);
+  }, [lendingActions.transaction, showToast, dismissPendingToasts, usd8Balance.refetch, poolInfo.refetch, userPosition.refetch, approval.refetch]);
 
   const handleTransactionSuccess = () => {
     usd8Balance.refetch();
